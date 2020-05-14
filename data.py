@@ -62,3 +62,5 @@ def get_artist_refs():
 	with open('data/artist_ref.json') as f:
 		artist_ref = json.load(f)
 	return(artist_ref)
+	
+data_to_index()
