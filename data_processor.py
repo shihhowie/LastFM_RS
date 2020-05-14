@@ -7,16 +7,18 @@ TODO:
 1. Add sliding window filter
 '''
 
-def get_process_data(process_name = "default_process"):
+def get_processed_data(process_name = "default_process"):
 	'''
 	load data from data.py and process it according to configuration in config/data.yaml
 	process name is the name of the configuration in config/data.yaml'''
-	data = get_data()
 	with open("config/data.yaml") as data_config:
 		data_info = yaml.load(data_config, Loader = yaml.SafeLoader)
 	config = data_info[process_name]
+	if config["agg_level"] == "week":
+		data = pd.read_csv("data/weekly_agg_data.tsv", sep = "\t", header=0)
+	elif config["agg_level"] == "month":
+		data = pd.read_csv("data/monthy_agg_data.tsv", sep = "\t", header=0)
 	data = filter_artist(data, config["artist_filter"])
-	data = aggregate_counts(data, config["agg_level"])
 	data = normalize_counts(data)
 	data = add_negative_samples(data, config["n_neg_samples"])
 	return(data)
@@ -45,6 +47,15 @@ def aggregate_counts(data, level):
 		data["date"] = 12*(data["date"].dt.year-base_year)+data["date"].dt.month
 		agg_data = data.groupby(["user_index", "artist_index", "date"]).sum()["listens"].reset_index()
 	return(agg_data)
+
+def agg_by_week_and_month():
+	'''NOTE: Already ran, do not need to run again
+	aggregate data by week and month and store in tsv file'''
+	data = get_data()
+	data_weekly_agg = aggregate_counts(data, "week")
+	data_monthly_agg = aggregate_counts(data, "month")
+	data_weekly_agg.to_csv("data/weekly_agg_data.tsv", sep='\t')
+	data_monthly_agg.to_csv("data/monthly_agg_data.tsv", sep='\t')
 
 def normalize_counts(data):
 	'''normalize weekly/monthly aggregated data via tf-idf'''
