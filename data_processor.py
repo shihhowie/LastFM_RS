@@ -5,7 +5,31 @@ import yaml
 '''
 TODO:
 1. Add sliding window filter
+2. Data feeder: seperates data into weekly or monthly data to feed to model
 '''
+def feed_data(data, window = 1):
+	'''
+	Data feeder to model in slices by date window, split by train and test
+	data slices come out in form 
+	[[(train_x1, train_y1), (test_x1, test_y1)], [(train_x2, train_y2), (test_x2, test_y2)]]
+	'''
+	start_date = min(data["date"])
+	end_date = max(data["date"])
+	n_windows = (end_date-start_date)-window+1
+	data_slices = []
+	for date in range(start_date, end_date):
+		data_slice = data[data["date"].isin(np.arange(date,date+window))]
+		train_ind = np.random.rand(len(data_slice)) > 0.1
+		train_slice = data_slice.loc[train_ind]
+		train_x = [train_slice["user_index"].values, train_slice["artist_index"].values]
+		train_y = train_slice["value"].values
+
+		test_slice = data_slice.loc[~train_ind]
+		test_x = [test_slice["user_index"].values, test_slice["artist_index"].values]
+		test_y = test_slice["value"].values
+
+		data_slices.append([(train_x, train_y), (test_x, test_y)])
+	return(data_slices)
 
 def get_processed_data(process_name = "default_process"):
 	'''
@@ -95,3 +119,6 @@ def add_negative_samples(data, n_negs):
 	data_aug = data_aug.groupby(["user_index", "artist_index", "date"]).max()["value"].reset_index()
 	return(data_aug)
 
+if __name__ == "__main__":
+	data = get_processed_data()
+	data.to_csv("data/data_example.tsv", sep="\t")
