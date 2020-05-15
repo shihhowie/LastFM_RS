@@ -5,18 +5,44 @@ import yaml
 '''
 TODO:
 1. Add sliding window filter
+2. Data feeder: seperates data into weekly or monthly data to feed to model
 '''
+def feed_data(data, window = 1):
+	'''
+	Data feeder to model in slices by date window, split by train and test
+	data slices come out in form 
+	[[(train_x1, train_y1), (test_x1, test_y1)], [(train_x2, train_y2), (test_x2, test_y2)]]
+	'''
+	start_date = min(data["date"])
+	end_date = max(data["date"])
+	n_windows = (end_date-start_date)-window+1
+	data_slices = []
+	for date in range(start_date, end_date):
+		data_slice = data[data["date"].isin(np.arange(date,date+window))]
+		train_ind = np.random.rand(len(data_slice)) > 0.1
+		train_slice = data_slice.loc[train_ind]
+		train_x = [train_slice["user_index"].values, train_slice["artist_index"].values]
+		train_y = train_slice["value"].values
 
-def get_process_data(process_name = "default_process"):
+		test_slice = data_slice.loc[~train_ind]
+		test_x = [test_slice["user_index"].values, test_slice["artist_index"].values]
+		test_y = test_slice["value"].values
+
+		data_slices.append([(train_x, train_y), (test_x, test_y)])
+	return(data_slices)
+
+def get_processed_data(process_name = "default_process"):
 	'''
 	load data from data.py and process it according to configuration in config/data.yaml
 	process name is the name of the configuration in config/data.yaml'''
-	data = get_data()
 	with open("config/data.yaml") as data_config:
 		data_info = yaml.load(data_config, Loader = yaml.SafeLoader)
 	config = data_info[process_name]
+	if config["agg_level"] == "week":
+		data = pd.read_csv("data/weekly_agg_data.tsv", sep = "\t", header=0)
+	elif config["agg_level"] == "month":
+		data = pd.read_csv("data/monthy_agg_data.tsv", sep = "\t", header=0)
 	data = filter_artist(data, config["artist_filter"])
-	data = aggregate_counts(data, config["agg_level"])
 	data = normalize_counts(data)
 	data = add_negative_samples(data, config["n_neg_samples"])
 	return(data)
@@ -45,6 +71,15 @@ def aggregate_counts(data, level):
 		data["date"] = 12*(data["date"].dt.year-base_year)+data["date"].dt.month
 		agg_data = data.groupby(["user_index", "artist_index", "date"]).sum()["listens"].reset_index()
 	return(agg_data)
+
+def agg_by_week_and_month():
+	'''NOTE: Already ran, do not need to run again
+	aggregate data by week and month and store in tsv file'''
+	data = get_data()
+	data_weekly_agg = aggregate_counts(data, "week")
+	data_monthly_agg = aggregate_counts(data, "month")
+	data_weekly_agg.to_csv("data/weekly_agg_data.tsv", sep='\t')
+	data_monthly_agg.to_csv("data/monthly_agg_data.tsv", sep='\t')
 
 def normalize_counts(data):
 	'''normalize weekly/monthly aggregated data via tf-idf'''
@@ -84,3 +119,6 @@ def add_negative_samples(data, n_negs):
 	data_aug = data_aug.groupby(["user_index", "artist_index", "date"]).max()["value"].reset_index()
 	return(data_aug)
 
+if __name__ == "__main__":
+	data = get_processed_data()
+	data.to_csv("data/data_example.tsv", sep="\t")
