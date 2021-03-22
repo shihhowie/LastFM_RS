@@ -52,8 +52,8 @@ def process_raw_data():
     with open("uid_to_userid.json", "w") as f:
         json.dump(uid_to_userid, f)
 
-    data["uid"] = [userid_to_uid[x] for x in data["userid"]]
-    data["aid"] = [artistid_to_aid[x] for x in data["artistid"]]
+    data["uid"] = data["userid"].map(userid_to_uid)
+    data["aid"] = data["artistid"].map(artistid_to_aid)
 
     data.drop(
         ["userid", "artistid", "trackid", "trackname", "artistname"],
