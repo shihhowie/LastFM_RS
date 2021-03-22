@@ -1,5 +1,0 @@
-default:
-  use_seed: True
-  n_latent: 10
-  batch_size: 64
-  epochs: 5
