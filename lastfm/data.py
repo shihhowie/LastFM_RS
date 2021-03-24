@@ -35,21 +35,21 @@ def process_raw_data():
     aid_name_pairs = data.groupby(["artistid", "artistname"]).indices.keys()
     aid_name_dict = {aid: aname for aid, aname in aid_name_pairs}
 
-    with open("artistid_to_aname.json", "w") as f:
+    with open("mappings/artistid_to_aname.json", "w") as f:
         json.dump(aid_name_dict, f)
 
     artistids = pd.unique(data["artistid"])
     aid_to_artistid = {aid: artistid for aid, artistid in enumerate(artistids)}
     artistid_to_aid = {artistid: aid for aid, artistid in enumerate(artistids)}
 
-    with open("aid_to_artistid.json", "w") as f:
+    with open("mappings/aid_to_artistid.json", "w") as f:
         json.dump(aid_to_artistid, f)
 
     userids = pd.unique(data["userid"])
     uid_to_userid = {uid: userid for uid, userid in enumerate(userids)}
     userid_to_uid = {userid: uid for uid, userid in enumerate(userids)}
 
-    with open("uid_to_userid.json", "w") as f:
+    with open("mappings/uid_to_userid.json", "w") as f:
         json.dump(uid_to_userid, f)
 
     data["uid"] = data["userid"].map(userid_to_uid)

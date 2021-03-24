@@ -21,7 +21,7 @@ def data_filtering(data, min_listens=5):
     filtered_data = data.loc[data["aid"].isin(valid_artists.index)]
 
 
-def sliding_windown(step=1):
+def sliding_window(step=1):
     """
     This is a generator that implements sliding window procedure to generate monthly data
     Parameters
@@ -44,6 +44,9 @@ def sliding_windown(step=1):
 
 
 if __name__ == "__main__":
-    data = sliding_windown()
-    print(next(data))
-    print(next(data))
+    data = sliding_window()
+    window = next(data)
+    window.to_csv("../data/test_window.csv", index=False)
+    print(window)
+    # print(next(data))
+    # print(next(data))
