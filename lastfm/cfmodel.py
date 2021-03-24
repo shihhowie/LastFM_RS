@@ -1,4 +1,5 @@
 import json
+import os
 
 import numpy as np
 import pandas as pd
@@ -10,11 +11,12 @@ import matplotlib.pyplot as plt
 from data_processing import sliding_window
 from data import get_processed_data
 
-with open("mappings/aid_to_artistid.json") as f:
+curr_path = os.path.dirname(os.path.abspath(__file__))
+with open(f"{curr_path}/mappings/aid_to_artistid.json") as f:
     aid_to_artistid = json.load(f)
-with open("mappings/artistid_to_aname.json") as f:
+with open(f"{curr_path}/mappings/artistid_to_aname.json") as f:
     artist_to_aname = json.load(f)
-with open("mappings/uid_to_userid.json") as f:
+with open(f"{curr_path}/mappings/uid_to_userid.json") as f:
     uid_to_userid = json.load(f)
 
 
