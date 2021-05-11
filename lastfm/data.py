@@ -60,12 +60,17 @@ def process_raw_data():
         axis=1,
         inplace=True,
     )
+    data.to_csv("../data/raw_data.tsv", sep="\t", index=False)
+    return data
 
+
+def agg_data(data):
     data["timestamp"] = pd.to_datetime(data["timestamp"], errors="coerce").dt.date
     agg_data = (
         data[["uid", "aid", "timestamp"]].value_counts().rename("count").reset_index()
     )
     agg_data.to_csv("../data/processed_data.tsv", sep="\t", index=False)
+    return agg_data
 
 
 def get_processed_data():
@@ -73,5 +78,10 @@ def get_processed_data():
     return data
 
 
+def get_data():
+    data = pd.read_csv("../data/raw_data.tsv", sep="\t")
+    return data
+
+
 if __name__ == "__main__":
-    print(get_processed_data())
+    print(get_processed_data().head())

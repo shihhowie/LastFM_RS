@@ -3,7 +3,7 @@ import datetime
 import pandas as pd
 import numpy as np
 
-from data import get_processed_data
+from data import get_processed_data, get_data
 
 
 def data_filtering(data, min_listens=5):
@@ -43,10 +43,52 @@ def sliding_window(step=1):
         end_window = end_window + datetime.timedelta(weeks=step)
 
 
+def remove_dup(session):
+    cleaned_session = []
+    curr_artist = -1
+    for artist in session:
+        if artist != curr_artist:
+            cleaned_session.append(artist)
+            curr_artist = artist
+    return cleaned_session
+
+
+def find_sessions(history, filter=500):
+    history = history[::-1]
+    history["diff"] = history["timestamp"].diff().dt.seconds.fillna(0)
+    session = []
+    for i, row in history.iterrows():
+        if row["diff"] < filter:
+            session.append(row["aid"])
+        else:
+            session = remove_dup(session)
+            session = list(map(lambda x: str(x), session))
+            if len(session) > 1:
+                with open("../data/session_data.txt", "a") as f:
+                    f.write(" ".join(session) + "\n")
+            session = []
+
+
+def process_sessions():
+    """
+    *opportunity to use pyspark here
+    Process timeseries of user's listening record for downstream artist2vec training
+        - define session
+        - session represents a sentence
+        - remove consecutive artists
+    """
+    data = get_data()
+    data["timestamp"] = pd.to_datetime(data["timestamp"], errors="coerce")
+    sessions = []
+    for uid, history in data.groupby("uid"):
+        find_sessions(history)
+
+
 if __name__ == "__main__":
-    data = sliding_window()
-    window = next(data)
-    window.to_csv("../data/test_window.csv", index=False)
-    print(window)
+    print(process_sessions())
+    # data = sliding_window()
+    # window = next(data)
+    # window.to_csv("../data/test_window.csv", index=False)
+    # print(window)
     # print(next(data))
     # print(next(data))

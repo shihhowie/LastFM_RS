@@ -36,7 +36,7 @@ def add_negative_samples(data, neg_size=5):
 
     full_df = pd.concat([data, neg_df], axis=0)
     full_df.drop_duplicates(subset=["uid", "aid"], keep="first", inplace=True)
-    print(full_df)
+    # print(full_df)
     return full_df
 
 
@@ -56,7 +56,8 @@ def process_encoding(data):
         axis=1,
         inplace=True,
     )
-    print(agg_data)
+    # print(agg_data)
+    agg_data = add_negative_samples(agg_data)
     return agg_data
 
 
@@ -94,7 +95,6 @@ class purchaseEmbedding(keras.Model):
 
 
 def prepare_training(data, n_uid, n_aid):
-    add_negative_samples(data)
 
     np.random.seed(0)
     mask = np.random.rand(len(data)) < 0.8
@@ -111,7 +111,7 @@ def prepare_training(data, n_uid, n_aid):
         x=x_train,
         y=y_train,
         batch_size=64,
-        epochs=5,
+        epochs=8,
         verbose=1,
         validation_data=(x_test, y_test),
     )
@@ -140,11 +140,11 @@ def extract_features(model, uid_to_userid, aid_to_artistid):
     }
     with open("../data/artist_features.json", "w") as f:
         json.dump(artistid_feature_map, f)
+    return uid_features, aid_features
 
 
 if __name__ == "__main__":
     data = pd.read_csv("../data/test_window.csv")
     data = process_encoding(data)
-    # data = add_negative_samples(data)
     history, model = prepare_training(data, len(uid_to_userid), len(aid_to_artistid))
     extract_features(model, uid_to_userid, aid_to_artistid)
