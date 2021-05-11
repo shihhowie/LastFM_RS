@@ -1,4 +1,0 @@
-default_process:
-  agg_level: week
-  n_neg_samples: 1
-  artist_filter: 5
