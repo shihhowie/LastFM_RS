@@ -108,7 +108,7 @@ def prepare_training(data, n_uid, n_aid):
     tf.random.set_seed(0)
     model = userEmbedding(n_uid, n_aid, embedding_size=32)
     model.compile(
-        loss=tf.keras.losses.BinaryCrossentropy(),
+        loss=tf.keras.losses.MeanSquaredError(),
         optimizer=keras.optimizers.Adam(lr=0.0001),
     )
     history = model.fit(
@@ -132,12 +132,12 @@ def plot_training(history):
     plt.show()
 
 
-def extract_features(model, uid_to_userid, aid_to_artistid):
+def extract_features(model, uid_to_userid, aid_to_artistid, data_id=0):
     uid_features = model.layers[0].get_weights()[0]
     # uid_bias = model.layers[1].get_weights()[0]
     aid_features = model.layers[1].get_weights()[0]
     userid_feature_map = {uid: uid_features[int(uid)].tolist() for uid in uid_to_userid}
-    with open("embeddings/user_features.json", "w") as f:
+    with open(f"{curr_path}/embeddings/user_features_{data_id}.json", "w") as f:
         json.dump(userid_feature_map, f)
 
     # artistid_feature_map = {
