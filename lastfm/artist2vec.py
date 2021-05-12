@@ -1,8 +1,34 @@
 import json
+import random
 
 import tensorflow as tf
+from tensorflow.keras import Model
+from tensorflow.keras.layers import Dot, Embedding, Flatten
 
 SEED = 2021
+with open("mappings/aid_to_artistid.json") as f:
+    aid_map = json.load(f)
+vocab_size = len(aid_map)
+
+
+class Artist2Vec(Model):
+    def __init__(self, vocab_size, embedding_dim, num_ns=4):
+        super(Artist2Vec, self).__init__()
+        self.target_embedding = Embedding(
+            vocab_size, embedding_dim, input_length=1, name="a2v_embedding"
+        )
+        self.context_embedding = Embedding(
+            vocab_size, embedding_dim, input_length=num_ns + 1
+        )
+        self.dots = Dot(axes=(3, 2))
+        self.flatten = Flatten()
+
+    def call(self, pair):
+        target, context = pair
+        word_emb = self.target_embedding(target)
+        context_emb = self.context_embedding(context)
+        dots = self.dots([context_emb, word_emb])
+        return self.flatten(dots)
 
 
 def generate_training_date(sequences, window_size, num_ns, vocab_size, seed):
@@ -40,6 +66,7 @@ def generate_training_date(sequences, window_size, num_ns, vocab_size, seed):
 
 def process_sequence(sequences, max_tokens, vocab_size):
     """
+    * padding might not be required if window size is 2
     Pads sequence with tokens fewer than max_tokens
         - padding uses max_id+1 since 0 is already used
     Split sequence with longer than max_tokens length
@@ -61,10 +88,7 @@ def process_sequence(sequences, max_tokens, vocab_size):
     return processed_sequence
 
 
-if __name__ == "__main__":
-    with open("mappings/aid_to_artistid.json") as f:
-        aid_map = json.load(f)
-    vocab_size = int(max(aid_map))
+def prepare_data():
     sessions = []
     with open("../data/session_data.txt") as f:
         for line in f:
@@ -72,6 +96,44 @@ if __name__ == "__main__":
             line = list(map(lambda x: int(x), line))
             sessions.append(line)
     sessions = list(filter(lambda x: len(x) > 1, sessions))
-    # sessions = process_sequence(sessions[:100], 5, vocab_size)
     # print(sessions)
-    generate_training_date(sessions, 2, 4, vocab_size, SEED)
+    return sessions
+
+
+def extract_embeddings(model):
+    embeddings = model.layers[0].get_weights()[0]
+    embedding_map = {aid: embeddings[int(aid)].tolist() for aid in aid_map}
+    with open("artist_embeddings.json", "w") as f:
+        json.dump(embedding_map, f)
+
+
+def train_model(
+    num_ns=4,
+    window_size=2,
+    embedding_dim=32,
+    batch_size=256,
+    buffer_size=10000,
+    epochs=5,
+):
+    sessions = prepare_data()
+    random.shuffle(sessions)
+    targets, contexts, labels = generate_training_date(
+        sessions[:20000], window_size, num_ns, vocab_size, SEED
+    )
+    dataset = tf.data.Dataset.from_tensor_slices(((targets, contexts), labels))
+    dataset = dataset.shuffle(buffer_size).batch(batch_size, drop_remainder=True)
+    dataset = dataset.cache().prefetch(buffer_size=buffer_size)
+    artist2vec = Artist2Vec(vocab_size, embedding_dim, num_ns=num_ns)
+    artist2vec.compile(
+        optimizer="adam",
+        loss=tf.keras.losses.CategoricalCrossentropy(from_logits=True),
+        metrics=["accuracy"],
+    )
+    tensorboard_callback = tf.keras.callbacks.TensorBoard(log_dir="logs")
+    artist2vec.fit(dataset, epochs=epochs, callbacks=[tensorboard_callback])
+    return artist2vec
+
+
+if __name__ == "__main__":
+    model = train_model(epochs=10)
+    extract_embeddings(model)
