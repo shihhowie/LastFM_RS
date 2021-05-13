@@ -38,23 +38,33 @@ def process_encoding(data):
     return agg_data
 
 
-def average_model(data):
+class average_model:
     """
     Baseline model that takes the aggregated window, and for every user, take the
     weighted average of the a2v embedding vector
     """
-    n_aid = len(aid_embedding)
-    aid_embedding_matrix = np.zeros((n_aid, 32))
-    for i in range(n_aid):
-        aid_embedding_matrix[i] = aid_embedding[str(i)]
 
-    uid_embedding = {}
-    for uid, history in data.groupby("uid"):
-        user_vector = np.zeros(aid_embedding_matrix.shape[1])
-        for i, row in history.iterrows():
-            user_vector += aid_embedding_matrix[int(row["aid"])] * row["target"]
-        uid_embedding[str(uid)] = user_vector.tolist()
-    return uid_embedding
+    def __init__(self, embedding_size=32, aid_embedding=aid_embedding):
+        self.embedding_size = embedding_size
+        self.aid_embedding = aid_embedding
+
+    def __call__(self, data):
+        data = process_encoding(data)
+        n_aid = len(self.aid_embedding)
+        aid_embedding_matrix = np.zeros((n_aid, self.embedding_size))
+        for i in range(n_aid):
+            aid_embedding_matrix[i] = self.aid_embedding[str(i)]
+
+        uid_embedding = {}
+        for uid, history in data.groupby("uid"):
+            user_vector = np.zeros(aid_embedding_matrix.shape[1])
+            for i, row in history.iterrows():
+                user_vector += aid_embedding_matrix[int(row["aid"])] * row["target"]
+            uid_embedding[str(uid)] = user_vector.tolist()
+        return uid_embedding
+
+    def __str__(self):
+        return "baseline"
 
 
 def store_embedding(embedding, data_id=0):
@@ -64,6 +74,5 @@ def store_embedding(embedding, data_id=0):
 
 if __name__ == "__main__":
     data = pd.read_csv("../data/test_window.csv")
-    data = process_encoding(data)
     res = average_model(data)
     store_embedding(res)
