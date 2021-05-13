@@ -3,6 +3,8 @@ import json
 
 import pandas as pd
 import numpy as np
+import umap
+import matplotlib.pyplot as plt
 
 from data_processing import sliding_window
 from baseline import average_model
@@ -41,8 +43,23 @@ def track_user(uid, model_name):
     return user_embeddings
 
 
+def visualize_user_tracking(uid, user_embeddings):
+    reducer = umap.UMAP()
+    active_ind = np.where(np.all(user_embeddings, axis=1))[0]
+    embeddings_active = user_embeddings[active_ind]
+    reduced_embedding = reducer.fit_transform(embeddings_active)
+    fig, _ = plt.subplots(figsize=(12, 8))
+    plt.plot(reduced_embedding[:, 0], reduced_embedding[:, 1], "o-", alpha=0.8)
+    for i in range(len(active_ind)):
+        plt.annotate(active_ind[i], (reduced_embedding[i, 0], reduced_embedding[i, 1]))
+    plt.title(f"user tracking for uid {uid}")
+    return fig
+
+
 if __name__ == "__main__":
     # data_generator = sliding_window()
     # model = average_model()
     # track_embedding(data_generator, model)
-    print(track_user(1, "baseline"))
+    e = track_user(1, "baseline")
+    visualize_user_tracking(1, e)
+    plt.show()
