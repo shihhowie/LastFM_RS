@@ -18,6 +18,8 @@ with open(f"{curr_path}/mappings/artistid_to_aname.json") as f:
     artist_to_aname = json.load(f)
 with open(f"{curr_path}/mappings/uid_to_userid.json") as f:
     uid_to_userid = json.load(f)
+with open(f"{curr_path}/embeddings/artist_embeddings.json") as f:
+    aid_embedding = json.load(f)
 
 
 def add_negative_samples(data, neg_size=5):
@@ -27,6 +29,7 @@ def add_negative_samples(data, neg_size=5):
     for artists, sample from all artists
     """
     # neg_size = number of negative examples per user? or per pair
+    np.random.seed(0)
     unique_uids = pd.unique(data["uid"])
     n_aid = max(aid_to_artistid)
     neg_uid = np.random.choice(unique_uids, size=len(data) * neg_size)
@@ -61,57 +64,58 @@ def process_encoding(data):
     return agg_data
 
 
-class purchaseEmbedding(keras.Model):
+class userEmbedding(keras.Model):
     def __init__(self, n_uid, n_aid, embedding_size=32, **kwargs):
         super().__init__(**kwargs)
         self.n_uid = n_uid
-        self.n_aid = n_aid
         self.embedding_size = embedding_size
         self.uid_embedding = layers.Embedding(
             n_uid,
             embedding_size,
             embeddings_initializer="he_normal",
-            embeddings_regularizer=keras.regularizers.l2(1e-6),
+            embeddings_regularizer=keras.regularizers.l2(1e-7),
         )
-        self.uid_bias = layers.Embedding(n_uid, 1)
+        # self.uid_bias = layers.Embedding(n_uid, 1)
+
+        aid_embedding_matrix = np.zeros((n_aid, embedding_size))
+        for i in range(n_aid):
+            aid_embedding_matrix[i] = aid_embedding[str(i)]
         self.aid_embedding = layers.Embedding(
             n_aid,
             embedding_size,
-            embeddings_initializer="he_normal",
-            embeddings_regularizer=keras.regularizers.l2(1e-6),
+            weights=[aid_embedding_matrix],
+            trainable=False,
         )
-        self.aid_bias = layers.Embedding(n_aid, 1)
 
     def call(self, inputs):
         uid_vector = self.uid_embedding(inputs[:, 0])
-        uid_bias = self.uid_bias(inputs[:, 0])
+        # uid_bias = self.uid_bias(inputs[:, 0])
         aid_vector = self.aid_embedding(inputs[:, 1])
-        aid_bias = self.aid_bias(inputs[:, 1])
         dot_product = tf.tensordot(uid_vector, aid_vector, 2)
         # Add all the components (including bias)
-        x = dot_product + uid_bias + aid_bias
+
+        x = tf.expand_dims(dot_product, 0)
         # The sigmoid activation forces the rating to between 0 and 1
         return tf.nn.sigmoid(x)
 
 
 def prepare_training(data, n_uid, n_aid):
-
     np.random.seed(0)
     mask = np.random.rand(len(data)) < 0.8
     train, test = data.loc[mask], data.loc[~mask]
     x_train, y_train = train[["uid", "aid"]].values, train["target"].values
     x_test, y_test = test[["uid", "aid"]].values, test["target"].values
-
-    model = purchaseEmbedding(n_uid, n_aid, embedding_size=32)
+    tf.random.set_seed(0)
+    model = userEmbedding(n_uid, n_aid, embedding_size=32)
     model.compile(
-        loss=tf.keras.losses.BinaryCrossentropy(),
-        optimizer=keras.optimizers.Adam(lr=0.001),
+        loss=tf.keras.losses.MeanSquaredError(),
+        optimizer=keras.optimizers.Adam(lr=0.0001),
     )
     history = model.fit(
         x=x_train,
         y=y_train,
-        batch_size=64,
-        epochs=8,
+        batch_size=128,
+        epochs=10,
         verbose=1,
         validation_data=(x_test, y_test),
     )
@@ -128,18 +132,19 @@ def plot_training(history):
     plt.show()
 
 
-def extract_features(model, uid_to_userid, aid_to_artistid):
+def extract_features(model, uid_to_userid, aid_to_artistid, data_id=0):
     uid_features = model.layers[0].get_weights()[0]
-    aid_features = model.layers[2].get_weights()[0]
+    # uid_bias = model.layers[1].get_weights()[0]
+    aid_features = model.layers[1].get_weights()[0]
     userid_feature_map = {uid: uid_features[int(uid)].tolist() for uid in uid_to_userid}
-    with open("../data/user_features.json", "w") as f:
+    with open(f"{curr_path}/embeddings/user_features_{data_id}.json", "w") as f:
         json.dump(userid_feature_map, f)
 
-    artistid_feature_map = {
-        aid: aid_features[int(aid)].tolist() for aid in aid_to_artistid
-    }
-    with open("../data/artist_features.json", "w") as f:
-        json.dump(artistid_feature_map, f)
+    # artistid_feature_map = {
+    #     aid: aid_features[int(aid)].tolist() for aid in aid_to_artistid
+    # }
+    # with open("../data/artist_features.json", "w") as f:
+    #     json.dump(artistid_feature_map, f)
     return uid_features, aid_features
 
 

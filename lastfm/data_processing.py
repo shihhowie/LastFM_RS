@@ -33,12 +33,14 @@ def sliding_window(step=1):
 
     beg_window = min_date
     end_window = min_date + datetime.timedelta(weeks=4)
+    i = 1
     while end_window < max_date:
         window = data.loc[
             (data["timestamp"] >= beg_window.strftime("%Y-%m-%d"))
             & (data["timestamp"] < end_window.strftime("%Y-%m-%d"))
         ]
-        yield window
+        yield window, i
+        i += 1
         beg_window = beg_window + datetime.timedelta(weeks=step)
         end_window = end_window + datetime.timedelta(weeks=step)
 
