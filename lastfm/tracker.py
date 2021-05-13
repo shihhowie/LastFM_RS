@@ -4,10 +4,12 @@ import json
 import pandas as pd
 import numpy as np
 import umap
+from plotly import graph_objects as go
+import plotly
 import matplotlib.pyplot as plt
 
-from data_processing import sliding_window
-from baseline import average_model
+from lastfm.data_processing import sliding_window
+from lastfm.baseline import average_model
 
 curr_path = os.path.dirname(os.path.abspath(__file__))
 
@@ -31,6 +33,7 @@ def track_embedding(data_generator, model):
 def track_user(uid, model_name):
     dir_path = f"{curr_path}/embeddings/{model_name}/"
     n_windows = len(os.listdir(dir_path))
+    # n_windows = 10
     embedding_size = len(list(aid_embedding.values())[0])
     user_embeddings = np.zeros((n_windows, embedding_size))
     for i in range(n_windows):
@@ -48,11 +51,22 @@ def visualize_user_tracking(uid, user_embeddings):
     active_ind = np.where(np.all(user_embeddings, axis=1))[0]
     embeddings_active = user_embeddings[active_ind]
     reduced_embedding = reducer.fit_transform(embeddings_active)
-    fig, _ = plt.subplots(figsize=(12, 8))
-    plt.plot(reduced_embedding[:, 0], reduced_embedding[:, 1], "o-", alpha=0.8)
-    for i in range(len(active_ind)):
-        plt.annotate(active_ind[i], (reduced_embedding[i, 0], reduced_embedding[i, 1]))
-    plt.title(f"user tracking for uid {uid}")
+    # fig, _ = plt.subplots(figsize=(12, 8))
+    # plt.plot(reduced_embedding[:, 0], reduced_embedding[:, 1], "o-", alpha=0.8)
+    # for i in range(len(active_ind)):
+    #     plt.annotate(active_ind[i], (reduced_embedding[i, 0], reduced_embedding[i, 1]))
+    # plt.title(f"user tracking for uid {uid}")
+    fig = go.Figure()
+    fig.add_trace(
+        go.Scatter(
+            x=reduced_embedding[:, 0],
+            y=reduced_embedding[:, 1],
+            text=[str(x) for x in active_ind],
+            mode="lines+markers+text",
+            textposition="top center",
+        )
+    )
+
     return fig
 
 
@@ -60,6 +74,8 @@ if __name__ == "__main__":
     # data_generator = sliding_window()
     # model = average_model()
     # track_embedding(data_generator, model)
-    e = track_user(1, "baseline")
-    visualize_user_tracking(1, e)
-    plt.show()
+    uid = 31
+    e = track_user(uid, "baseline")
+    fig = visualize_user_tracking(uid, e)
+    graphJSON = json.dumps(fig, cls=plotly.utils.PlotlyJSONEncoder)
+    print(graphJSON)

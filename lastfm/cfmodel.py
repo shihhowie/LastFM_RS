@@ -8,8 +8,8 @@ from tensorflow import keras
 from tensorflow.keras import layers
 import matplotlib.pyplot as plt
 
-from data_processing import sliding_window
-from data import get_processed_data
+from lastfm.data_processing import sliding_window
+from lastfm.data import get_processed_data
 
 curr_path = os.path.dirname(os.path.abspath(__file__))
 with open(f"{curr_path}/mappings/aid_to_artistid.json") as f:
