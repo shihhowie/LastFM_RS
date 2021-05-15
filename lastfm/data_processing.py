@@ -1,11 +1,19 @@
 import json
+import os
+import shutil
 import datetime
+
 import pandas as pd
 import numpy as np
 
-from lastfm.data import get_processed_data, get_data
+from pyspark.sql.functions import pandas_udf
+
+from lastfm.data import get_processed_data, get_data, get_data_with_spark
+
+from lastfm.helpers import timer
 
 
+@timer
 def data_filtering(data, min_listens=5):
     """
     Filter data based on how many artists will be kept in the dataset
@@ -19,6 +27,7 @@ def data_filtering(data, min_listens=5):
         len(valid_artists) / len(agg_data_by_artist),
     )
     filtered_data = data.loc[data["aid"].isin(valid_artists.index)]
+    return filtered_data
 
 
 def sliding_window(step=1):
@@ -55,9 +64,17 @@ def remove_dup(session):
     return cleaned_session
 
 
-def find_sessions(history, filter=500):
+def write_session_data(session_data, fname=None):
+    with open("../data/session_data_by_spark.txt", "a") as f:
+        for session in session_data:
+            if len(session) > 1:
+                f.write(" ".join(session) + "\n")
+
+
+def find_sessions(history, filter=500, batch_write=False):
     history = history[::-1]
     history["diff"] = history["timestamp"].diff().dt.seconds.fillna(0)
+    sessions = []
     session = []
     for i, row in history.iterrows():
         if row["diff"] < filter:
@@ -65,12 +82,19 @@ def find_sessions(history, filter=500):
         else:
             session = remove_dup(session)
             session = list(map(lambda x: str(x), session))
-            if len(session) > 1:
-                with open("../data/session_data.txt", "a") as f:
+            if not batch_write and len(session) > 1:
+                with open("../data/session_data_by_spark.txt", "a") as f:
                     f.write(" ".join(session) + "\n")
+            else:
+                sessions.append(session)
             session = []
+    return sessions
 
 
+import itertools
+
+
+@timer
 def process_sessions():
     """
     *opportunity to use pyspark here
@@ -81,13 +105,55 @@ def process_sessions():
     """
     data = get_data()
     data["timestamp"] = pd.to_datetime(data["timestamp"], errors="coerce")
-    sessions = []
-    for uid, history in data.groupby("uid"):
-        find_sessions(history)
+    for uid, history in itertools.islice(data.groupby("uid"), 10):
+        sessions = find_sessions(history)
+        write_session_data(sessions)
+
+
+def combined_spark_outputs(path):
+    for fname in os.listdir(path):
+        if fname.startswith("part-"):
+            with open(f"{path}/{fname}") as f:
+                content = f.read()
+            with open(f"{path}.txt", "a") as f:
+                f.write(content)
+    shutil.rmtree(path)
+
+
+@timer
+def process_sessions_with_spark(sc, fname=None):
+
+    # data = get_data_with_spark()
+    data = get_data()
+    data["timestamp"] = pd.to_datetime(data["timestamp"], errors="coerce")
+    uid_groups = itertools.islice(data.groupby("uid"), 10)
+    rdd = sc.parallelize(uid_groups)
+    curr_path = os.path.dirname(os.path.abspath(__file__))
+
+    # sessions = (
+    #     rdd.flatMap(lambda x: find_sessions(x[1], batch_write=True))
+    #     .filter(lambda x: len(x) > 1)
+    #     .collect()
+    # )
+    # write_session_data(sessions)
+
+    rdd.flatMap(lambda x: find_sessions(x[1], batch_write=True)).filter(
+        lambda x: len(x) > 1
+    ).saveAsTextFile(fname)
+    combined_spark_outputs(fname)
 
 
 if __name__ == "__main__":
-    print(process_sessions())
+    curr_path = os.path.dirname(os.path.abspath(__file__))
+
+    from pyspark import SparkContext
+
+    sc = SparkContext()
+    fname = f"{curr_path}/../data/session_data_by_spark2"
+    sessions = process_sessions_with_spark(sc, fname)
+    # combined_spark_outputs(fname)
+    # print(sessions)
+    # process_sessions()
     # data = sliding_window()
     # window = next(data)
     # window.to_csv("../data/test_window.csv", index=False)

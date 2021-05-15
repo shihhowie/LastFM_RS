@@ -51,8 +51,10 @@ def track_user(uid, model_name):
 
 
 @timer
-def track_user_spark(sc, uid, model_name):
+def track_user_spark(uid, model_name):
+    from pyspark import SparkContext
 
+    sc = SparkContext()
     dir_path = f"{curr_path}/embeddings/{model_name}/*"
     rdd = sc.textFile(dir_path)
     uid = 31
@@ -61,10 +63,7 @@ def track_user_spark(sc, uid, model_name):
 
 
 if __name__ == "__main__":
-    from pyspark import SparkContext
 
-    sc = SparkContext()
-    track_user_spark(sc, 31, "baseline")
     # data_generator = sliding_window()
     # model = AverageModel()
     # track_embedding(data_generator, model)

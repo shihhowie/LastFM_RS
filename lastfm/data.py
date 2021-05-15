@@ -83,5 +83,15 @@ def get_data():
     return data
 
 
+def get_data_with_spark():
+    from pyspark.sql import SparkSession
+    from pyspark.sql.functions import to_timestamp
+
+    spark = SparkSession.builder.getOrCreate()
+    df = spark.read.options(header=True, delimiter="\t").csv("../data/raw_data.tsv")
+    df.select(to_timestamp(df.timestamp, "yyyy-MM-dd HH:mm:ss")).collect()
+    return df
+
+
 if __name__ == "__main__":
-    print(get_processed_data().head())
+    print(get_data_with_spark().show())
