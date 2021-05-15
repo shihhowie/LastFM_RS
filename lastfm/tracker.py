@@ -4,14 +4,12 @@ import json
 import pandas as pd
 import numpy as np
 
+
 from lastfm.data_processing import sliding_window
 from lastfm.baseline import AverageModel
 from lastfm.helpers import timer
 
 curr_path = os.path.dirname(os.path.abspath(__file__))
-
-# with open(f"{curr_path}/embeddings/artist_embeddings.json") as f:
-#     aid_embedding = json.load(f)
 
 
 def store_embedding(embedding, name, data_id=0):
@@ -29,28 +27,44 @@ def track_embedding(data_generator, model):
 
 @timer
 def track_user(uid, model_name):
-    # n_windows = len(os.listdir(dir_path))
-    n_windows = 10
-    user_embeddings = []
-    for i in range(n_windows):
-        fname = dir_path + f"embedding_{i+1}.json"
+    dir_path = f"{curr_path}/embeddings/{model_name}/"
+    with open(f"{curr_path}/embeddings/{model_name}_uf_0.json") as f:
+        sample_user_embedding = json.load(f)
+    embedding_size = len(sample_user_embedding[list(sample_user_embedding)[0]])
+    n_windows = len(os.listdir(dir_path))
+    null_embedding = np.zeros(embedding_size)
+    user_embeddings = np.zeros((n_windows, embedding_size))
+    # n_windows = 10
+
+    def get_user_embedding_matrix(fname):
         with open(fname) as f:
             embeddings = json.load(f)
-        embedding_size = len(embeddings[list(embeddings)[0]])
-        null_embedding = np.zeros(embedding_size)
         uf = embeddings.get(str(uid), null_embedding)
-        user_embeddings.append(uf)
+        return uf
+
+    for i in range(n_windows):
+        fname = dir_path + f"embedding_{i+1}.json"
+        uf = get_user_embedding_matrix(fname)
+        user_embeddings[i] = uf
+        # user_embeddings.append(uf)
     return np.array(user_embeddings)
 
 
 @timer
-def load_module():
-    from plotly import graph_objects as go
-    import plotly
+def track_user_spark(sc, uid, model_name):
+
+    dir_path = f"{curr_path}/embeddings/{model_name}/*"
+    rdd = sc.textFile(dir_path)
+    uid = 31
+    embeddings = rdd.map(lambda x: json.loads(x).get(str(uid))).collect()
+    return np.array(embeddings)
 
 
 if __name__ == "__main__":
-    load_module()
+    from pyspark import SparkContext
+
+    sc = SparkContext()
+    track_user_spark(sc, 31, "baseline")
     # data_generator = sliding_window()
     # model = AverageModel()
     # track_embedding(data_generator, model)
