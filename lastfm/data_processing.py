@@ -3,7 +3,7 @@ import datetime
 import pandas as pd
 import numpy as np
 
-from data import get_processed_data, get_data
+from lastfm.data import get_processed_data, get_data
 
 
 def data_filtering(data, min_listens=5):

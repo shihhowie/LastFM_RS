@@ -4,8 +4,8 @@ import os
 import numpy as np
 import pandas as pd
 
-from data_processing import sliding_window
-from data import get_processed_data
+from lastfm.data_processing import sliding_window
+from lastfm.data import get_processed_data
 
 curr_path = os.path.dirname(os.path.abspath(__file__))
 with open(f"{curr_path}/mappings/aid_to_artistid.json") as f:
