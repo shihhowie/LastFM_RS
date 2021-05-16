@@ -4,18 +4,18 @@ import os
 import numpy as np
 import pandas as pd
 
+
 from lastfm.data_processing import sliding_window
 from lastfm.data import get_processed_data
+from helpers import get_artist_embedding, timer
 
 curr_path = os.path.dirname(os.path.abspath(__file__))
 with open(f"{curr_path}/mappings/aid_to_artistid.json") as f:
     aid_to_artistid = json.load(f)
-with open(f"{curr_path}/mappings/artistid_to_aname.json") as f:
-    artist_to_aname = json.load(f)
+# with open(f"{curr_path}/mappings/artistid_to_aname.json") as f:
+#     artist_to_aname = json.load(f)
 with open(f"{curr_path}/mappings/uid_to_userid.json") as f:
     uid_to_userid = json.load(f)
-with open(f"{curr_path}/embeddings/artist_embeddings.json") as f:
-    aid_embedding = json.load(f)
 
 
 def process_encoding(data):
@@ -38,13 +38,15 @@ def process_encoding(data):
     return agg_data
 
 
-class average_model:
+class AverageModel:
     """
     Baseline model that takes the aggregated window, and for every user, take the
     weighted average of the a2v embedding vector
     """
 
-    def __init__(self, embedding_size=32, aid_embedding=aid_embedding):
+    def __init__(self, embedding_size=32):
+        with open(f"{curr_path}/embeddings/artist_embeddings.json") as f:
+            aid_embedding = json.load(f)
         self.embedding_size = embedding_size
         self.aid_embedding = aid_embedding
 
@@ -72,7 +74,13 @@ def store_embedding(embedding, data_id=0):
         json.dump(embedding, f)
 
 
-if __name__ == "__main__":
+@timer
+def test_speed():
     data = pd.read_csv("../data/test_window.csv")
+    average_model = AverageModel()
     res = average_model(data)
-    store_embedding(res)
+
+
+if __name__ == "__main__":
+    test_speed()
+    # store_embedding(res)
