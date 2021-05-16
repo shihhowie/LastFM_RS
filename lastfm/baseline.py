@@ -7,7 +7,7 @@ import pandas as pd
 
 from lastfm.data_processing import sliding_window
 from lastfm.data import get_processed_data
-from helpers import get_artist_embedding, timer
+from lastfm.helpers import get_artist_embedding, timer
 
 curr_path = os.path.dirname(os.path.abspath(__file__))
 with open(f"{curr_path}/mappings/aid_to_artistid.json") as f:
