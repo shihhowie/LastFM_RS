@@ -6,8 +6,6 @@ import datetime
 import pandas as pd
 import numpy as np
 
-from pyspark.sql.functions import pandas_udf
-
 from lastfm.data import get_processed_data, get_data, get_data_with_spark
 
 from lastfm.helpers import timer

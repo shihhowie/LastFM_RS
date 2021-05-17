@@ -4,8 +4,9 @@ from flask import Flask, render_template
 from plotly import graph_objects as go
 import numpy as np
 import plotly
-import matplotlib.pyplot as plt
-import umap
+
+# import matplotlib.pyplot as plt
+# import umap
 
 from lastfm.tracker import track_user
 
