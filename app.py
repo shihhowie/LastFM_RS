@@ -1,7 +1,8 @@
 import json
 
 from flask import Flask, render_template
-from flask_caching import Cache
+
+# from flask_caching import Cache
 import plotly
 from plotly import graph_objects as go
 import numpy as np
