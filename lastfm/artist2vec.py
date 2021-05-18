@@ -8,7 +8,7 @@ from tensorflow.keras.layers import Dot, Embedding, Flatten
 
 from helpers import timer
 
-from redis_connection import r
+from lastfm.redis_connection import r
 
 SEED = 2021
 with open("mappings/aid_to_artistid.json") as f:

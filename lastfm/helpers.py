@@ -5,7 +5,7 @@ import time
 
 import numpy as np
 
-from redis_connect import r
+from lastfm.redis_connect import r
 
 curr_path = os.path.dirname(os.path.abspath(__file__))
 
