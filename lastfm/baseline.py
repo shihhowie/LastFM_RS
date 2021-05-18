@@ -10,12 +10,12 @@ from lastfm.data import get_processed_data
 from lastfm.helpers import get_artist_embedding, timer
 
 curr_path = os.path.dirname(os.path.abspath(__file__))
-with open(f"{curr_path}/mappings/aid_to_artistid.json") as f:
-    aid_to_artistid = json.load(f)
-# with open(f"{curr_path}/mappings/artistid_to_aname.json") as f:
-#     artist_to_aname = json.load(f)
-with open(f"{curr_path}/mappings/uid_to_userid.json") as f:
-    uid_to_userid = json.load(f)
+# with open(f"{curr_path}/mappings/aid_to_artistid.json") as f:
+#     aid_to_artistid = json.load(f)
+# # with open(f"{curr_path}/mappings/artistid_to_aname.json") as f:
+# #     artist_to_aname = json.load(f)
+# with open(f"{curr_path}/mappings/uid_to_userid.json") as f:
+#     uid_to_userid = json.load(f)
 
 
 def process_encoding(data):

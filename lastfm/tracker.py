@@ -1,9 +1,10 @@
 import os
 import json
+import re
 
 import pandas as pd
 import numpy as np
-
+import redis
 
 from lastfm.data_processing import sliding_window
 from lastfm.baseline import AverageModel
@@ -12,10 +13,12 @@ from lastfm.helpers import timer
 curr_path = os.path.dirname(os.path.abspath(__file__))
 
 
-def store_embedding(embedding, name, data_id=0):
-    if not os.path.isdir(f"{curr_path}/embeddings/{name}"):
-        os.mkdir(f"{curr_path}/embeddings/{name}")
-    with open(f"{curr_path}/embeddings/{name}/embedding_{data_id}.json", "w") as f:
+def store_embedding(embedding, model_name, data_id=0):
+    if not os.path.isdir(f"{curr_path}/embeddings/{model_name}"):
+        os.mkdir(f"{curr_path}/embeddings/{model_name}")
+    with open(
+        f"{curr_path}/embeddings/{model_name}/embedding_{data_id}.json", "w"
+    ) as f:
         json.dump(embedding, f)
 
 
@@ -23,6 +26,32 @@ def track_embedding(data_generator, model):
     for data, data_id in data_generator:
         embedding = model(data)
         store_embedding(embedding, model.__str__(), data_id)
+        store_embedding_in_redis(embedding, model.__str__(), data_id)
+
+
+def store_embedding_in_redis(embedding, model_name, data_id):
+    r = redis.Redis()
+    with r.pipeline() as pipe:
+        for uid, u_embedding in embedding.items():
+            key = f"{model_name}:window_{data_id}:uid_{uid}"
+            if r.exists(key):
+                r.delete(key)
+            r.rpush(key, *u_embedding)
+        pipe.execute()
+
+
+@timer
+def track_user_redis(uid, model_name):
+    r = redis.Redis()
+    with r.pipeline() as pipe:
+        keys = sorted(list(r.scan_iter(f"{model_name}:*:uid_{uid}")))
+        user_embeddings = np.zeros((len(keys), 32))
+        print(user_embeddings.shape)
+        for i, key in enumerate(keys):
+            embedding = list(map(lambda x: float(x), r.lrange(key, 0, -1)))
+            user_embeddings[i] = embedding
+        pipe.execute()
+    return user_embeddings
 
 
 @timer
@@ -68,7 +97,5 @@ if __name__ == "__main__":
     # model = AverageModel()
     # track_embedding(data_generator, model)
     uid = 31
-    e = track_user(uid, "baseline")
-    # fig = visualize_user_tracking(uid, e)
-    # graphJSON = json.dumps(fig, cls=plotly.utils.PlotlyJSONEncoder)
-    # print(graphJSON)
+    e1 = track_user(uid, "baseline")
+    e2 = track_user_redis(uid, "baseline")

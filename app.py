@@ -1,17 +1,25 @@
 import json
 
 from flask import Flask, render_template
+from flask_caching import Cache
+import plotly
 from plotly import graph_objects as go
 import numpy as np
-import plotly
 
 # import matplotlib.pyplot as plt
 # import umap
 
-from lastfm.tracker import track_user
+from lastfm.tracker import track_user, track_user_redis
 
 
 app = Flask(__name__)
+# cache = Cache(app, config={
+#     "CACHE_TYPE": "redis",
+#     "CACHE_KEY_PREFIX": "server1",
+#     "CACHE_REDIS_HOST": "localhost",
+#     "CACHE_REDIS_PORT": "6379",
+#     "CACHE_REDIS_URL": "redis://localhost:6379"
+# })
 
 
 def visualize_user_tracking_umap(uid, user_embeddings):
@@ -87,7 +95,7 @@ def main():
 
 @app.route("/user/<uid>")
 def hello_world(uid):
-    e = track_user(uid, "baseline")
+    e = track_user_redis(uid, "baseline")
     fig = visualize_user_tracking(uid, e)
     graphJSON = json.dumps(fig, cls=plotly.utils.PlotlyJSONEncoder)
     return render_template("plotly.html", graphJSON=graphJSON)

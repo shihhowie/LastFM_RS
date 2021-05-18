@@ -2,6 +2,7 @@ import json
 import random
 import os
 
+import redis
 import tensorflow as tf
 from tensorflow.keras import Model
 from tensorflow.keras.layers import Dot, Embedding, Flatten
@@ -138,7 +139,6 @@ def train_model(
 
 
 def store_embedding_to_redis():
-    import redis
 
     curr_path = os.path.dirname(os.path.abspath(__file__))
 
