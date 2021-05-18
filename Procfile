@@ -1,1 +1,1 @@
-web: gunicorn app:lastfm
+web: gunicorn app:app
