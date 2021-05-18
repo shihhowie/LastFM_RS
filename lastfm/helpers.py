@@ -42,10 +42,6 @@ def timer(f):
     return wrapper_timer
 
 
-with open(f"{curr_path}/mappings/aid_to_artistid.json") as f:
-    aid_to_artistid = json.load(f)
-
-
 if __name__ == "__main__":
     # print(get_artist_embedding(31))
     pass
