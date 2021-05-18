@@ -139,18 +139,6 @@ def train_model(
     return artist2vec
 
 
-def store_embedding_to_redis():
-
-    curr_path = os.path.dirname(os.path.abspath(__file__))
-
-    with open(f"{curr_path}/embeddings/artist_embeddings.json") as f:
-        aid_embedding = json.load(f)
-    with r.pipeline() as pipe:
-        for aid, a_embedding in aid_embedding.items():
-            r.rpush(f"aid:{aid}", *a_embedding)
-        pipe.execute()
-
-
 if __name__ == "__main__":
     # model = train_model(epochs=10)
     # extract_embeddings(model)

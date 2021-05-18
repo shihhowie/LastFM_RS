@@ -1,6 +1,9 @@
 import json
+import os
 
 from flask import Flask, render_template
+from flask_sqlalchemy import SQLAlchemy
+from flask_migrate import Migrate
 
 # from flask_caching import Cache
 import plotly
@@ -10,10 +13,15 @@ import numpy as np
 # import matplotlib.pyplot as plt
 # import umap
 
-from lastfm.tracker import track_user, track_user_redis
-
-
 app = Flask(__name__)
+app.config["SQLALCHEMY_DATABASE_URI"] = "postgresql:///lastfm"
+app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
+db = SQLAlchemy(app)
+migrate = Migrate(app, db)
+
+from lastfm.tracker import track_user, track_user_redis
+from lastfm.postgres_connect import Embedding
+
 # cache = Cache(app, config={
 #     "CACHE_TYPE": "redis",
 #     "CACHE_KEY_PREFIX": "server1",

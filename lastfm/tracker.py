@@ -8,7 +8,7 @@ import numpy as np
 from lastfm.data_processing import sliding_window
 from lastfm.baseline import AverageModel
 from lastfm.helpers import timer
-from lastfm.redis_connect import r
+from lastfm.redis_connect import r, store_user_embedding_to_redis
 
 curr_path = os.path.dirname(os.path.abspath(__file__))
 
@@ -26,18 +26,7 @@ def track_embedding(data_generator, model):
     for data, data_id in data_generator:
         embedding = model(data)
         store_embedding(embedding, model.__str__(), data_id)
-        store_embedding_in_redis(embedding, model.__str__(), data_id)
-
-
-def store_embedding_in_redis(embedding, model_name, data_id):
-    r = redis.Redis()
-    with r.pipeline() as pipe:
-        for uid, u_embedding in embedding.items():
-            key = f"{model_name}:window_{data_id}:uid_{uid}"
-            if r.exists(key):
-                r.delete(key)
-            r.rpush(key, *u_embedding)
-        pipe.execute()
+        store_user_embedding_to_redis(embedding, model.__str__(), data_id)
 
 
 @timer
