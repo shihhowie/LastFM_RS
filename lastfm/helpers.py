@@ -5,6 +5,7 @@ import time
 
 import numpy as np
 
+from redis_connect import r
 
 curr_path = os.path.dirname(os.path.abspath(__file__))
 
@@ -22,9 +23,7 @@ def convert_to_matrix(embedding_map):
 
 
 def get_artist_embedding(aid):
-    import redis
 
-    r = redis.Redis()
     embedding = list(map(lambda x: float(x), r.lrange(f"aid:{aid}", 0, -1)))
     return embedding
 

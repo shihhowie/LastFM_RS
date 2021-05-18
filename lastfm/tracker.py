@@ -4,11 +4,11 @@ import re
 
 import pandas as pd
 import numpy as np
-import redis
 
 from lastfm.data_processing import sliding_window
 from lastfm.baseline import AverageModel
 from lastfm.helpers import timer
+from lastfm.redis_connect import r
 
 curr_path = os.path.dirname(os.path.abspath(__file__))
 
@@ -42,7 +42,6 @@ def store_embedding_in_redis(embedding, model_name, data_id):
 
 @timer
 def track_user_redis(uid, model_name):
-    r = redis.Redis()
     with r.pipeline() as pipe:
         keys = sorted(list(r.scan_iter(f"{model_name}:*:uid_{uid}")))
         user_embeddings = np.zeros((len(keys), 32))
