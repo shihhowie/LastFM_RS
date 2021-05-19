@@ -1,12 +1,7 @@
 import os
 
-# from app import db
+from app import db
 from sqlalchemy.dialects.postgresql import JSON
-
-app = Flask(__name__)
-app.config["SQLALCHEMY_DATABASE_URI"] = os.environ["DATABASE_URL"]
-app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
-db = SQLAlchemy(app)
 
 
 class Embedding(db.Model):
