@@ -20,7 +20,7 @@ db = SQLAlchemy(app)
 migrate = Migrate(app, db)
 
 from lastfm.tracker import track_user, track_user_redis
-from lastfm.postgres_connect import Embedding
+from lastfm.embedding import UserEmbedding
 
 # cache = Cache(app, config={
 #     "CACHE_TYPE": "redis",
@@ -31,10 +31,8 @@ from lastfm.postgres_connect import Embedding
 # })
 
 
-def visualize_user_tracking_umap(uid, user_embeddings):
+def visualize_user_tracking_umap(uid, embeddings_active, active_ind):
     reducer = umap.UMAP()
-    active_ind = np.where(np.all(user_embeddings, axis=1))[0]
-    embeddings_active = user_embeddings[active_ind]
     reduced_embedding = reducer.fit_transform(embeddings_active)
     # fig, _ = plt.subplots(figsize=(12, 8))
     # plt.plot(reduced_embedding[:, 0], reduced_embedding[:, 1], "o-", alpha=0.8)
@@ -60,9 +58,7 @@ def visualize_user_tracking_umap(uid, user_embeddings):
     return fig
 
 
-def visualize_user_tracking(uid, user_embeddings):
-    active_ind = np.where(np.all(user_embeddings, axis=1))[0]
-    embeddings_active = user_embeddings[active_ind]
+def visualize_user_tracking(uid, embeddings_active, active_ind):
     embedding_diff = []
     embedding_diff_to_first = []
     base = embeddings_active[0]
