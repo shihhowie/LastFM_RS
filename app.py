@@ -23,7 +23,7 @@ curr_path = os.path.dirname(os.path.abspath(__file__))
 MIGRATE_PATH = os.path.join(curr_path, "lastfm", "migrations")
 migrate = Migrate(app, db, directory=MIGRATE_PATH)
 
-from lastfm.tracker import track_user, track_user_redis
+from lastfm.tracker import track_user, track_user_redis, track_user_db
 from lastfm.embedding import UserEmbedding
 
 # cache = Cache(app, config={
@@ -104,8 +104,8 @@ def main():
 
 @app.route("/user/<uid>")
 def hello_world(uid):
-    e = track_user_redis(uid, "baseline")
-    fig = visualize_user_tracking(uid, e)
+    e, ind = track_user_db(uid, "baseline")
+    fig = visualize_user_tracking(uid, e, ind)
     graphJSON = json.dumps(fig, cls=plotly.utils.PlotlyJSONEncoder)
     return render_template("plotly.html", graphJSON=graphJSON)
 
