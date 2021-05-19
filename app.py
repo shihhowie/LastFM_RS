@@ -17,7 +17,9 @@ app = Flask(__name__)
 app.config["SQLALCHEMY_DATABASE_URI"] = os.environ["DATABASE_URL"]
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 db = SQLAlchemy(app)
-migrate = Migrate(app, db)
+curr_path = os.path.dirname(os.path.abspath(__file__))
+MIGRATE_PATH = os.path.join(curr_path, "lastfm", "migrations")
+migrate = Migrate(app, db, directory=MIGRATE_PATH)
 
 from lastfm.tracker import track_user, track_user_redis
 from lastfm.embedding import UserEmbedding
