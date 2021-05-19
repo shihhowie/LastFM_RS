@@ -1,6 +1,8 @@
 import os
 
-from app import db
+import app
+
+db = app.db
 from sqlalchemy.dialects.postgresql import JSON
 
 
