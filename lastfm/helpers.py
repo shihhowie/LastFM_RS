@@ -4,7 +4,8 @@ import functools
 import time
 
 import numpy as np
-import redis
+
+from lastfm.redis_connect import r
 
 curr_path = os.path.dirname(os.path.abspath(__file__))
 
@@ -22,7 +23,7 @@ def convert_to_matrix(embedding_map):
 
 
 def get_artist_embedding(aid):
-    r = redis.Redis()
+
     embedding = list(map(lambda x: float(x), r.lrange(f"aid:{aid}", 0, -1)))
     return embedding
 
@@ -38,10 +39,6 @@ def timer(f):
         return res
 
     return wrapper_timer
-
-
-with open(f"{curr_path}/mappings/aid_to_artistid.json") as f:
-    aid_to_artistid = json.load(f)
 
 
 if __name__ == "__main__":

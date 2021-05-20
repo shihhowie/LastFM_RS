@@ -2,12 +2,13 @@ import json
 import random
 import os
 
-import redis
 import tensorflow as tf
 from tensorflow.keras import Model
 from tensorflow.keras.layers import Dot, Embedding, Flatten
 
 from helpers import timer
+
+from lastfm.redis_connection import r
 
 SEED = 2021
 with open("mappings/aid_to_artistid.json") as f:
@@ -136,18 +137,6 @@ def train_model(
     tensorboard_callback = tf.keras.callbacks.TensorBoard(log_dir="logs")
     artist2vec.fit(dataset, epochs=epochs, callbacks=[tensorboard_callback])
     return artist2vec
-
-
-def store_embedding_to_redis():
-    curr_path = os.path.dirname(os.path.abspath(__file__))
-
-    r = redis.Redis()
-    with open(f"{curr_path}/embeddings/artist_embeddings.json") as f:
-        aid_embedding = json.load(f)
-    with r.pipeline() as pipe:
-        for aid, a_embedding in aid_embedding.items():
-            r.rpush(f"aid:{aid}", *a_embedding)
-        pipe.execute()
 
 
 if __name__ == "__main__":
