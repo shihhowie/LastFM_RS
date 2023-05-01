@@ -1,4 +1,4 @@
-Flask==2.0.0
+Flask==2.3.2
 Flask-Migrate==2.5.2
 numpy==1.19.5
 plotly==4.14.3
